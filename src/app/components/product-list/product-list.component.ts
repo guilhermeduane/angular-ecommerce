@@ -14,6 +14,12 @@ export class ProductListComponent implements OnInit {
   currentCategoryId: number = 1;
   currentCategoryName: string = "";
   searchMode: boolean = false;
+  thePageNumber: number = 1;
+  thePageSize: number = 5;
+  theTotalElements: number =0;
+  previousCategoryId: number = 1;
+  previousKeyword: string = "";
+
 
   constructor(private productService: ProductService,
               private route: ActivatedRoute) {
@@ -47,20 +53,36 @@ export class ProductListComponent implements OnInit {
       this.currentCategoryId = 1;
       this.currentCategoryName = 'Books';
     }
+    if(this.previousCategoryId !== this.currentCategoryId) {
+      this.thePageNumber = 1;
+    }
+    this.previousCategoryId = this.currentCategoryId;
 
-    this.productService.getProductList(this.currentCategoryId).subscribe(
-      data => {
-        this.products = data;
-      }
-    )
+    this.productService.getProductListPaginate(this.thePageNumber -1, this.thePageSize, this.currentCategoryId).subscribe(this.processResult());
+
   }
 
   private handleSearchProducts() {
     const theKeyword: string = this.route.snapshot.paramMap.get('keyword')!;
-    this.productService.searchProducts(theKeyword).subscribe(
-      data => {
-        this.products = data;
-      }
-    )
+    if(this.previousKeyword !== theKeyword) {
+      this.thePageNumber = 1;
+    }
+    this.previousKeyword = theKeyword;
+    this.productService. searchProductPaginate(this.thePageNumber -1, this.thePageSize, theKeyword).subscribe(this.processResult());
+  }
+
+  updatePageSize(pageSize: string) {
+    this.thePageSize = +pageSize;
+    this.thePageNumber = 1;
+    this.listProducts();
+  }
+
+   processResult() {
+    return (data: any)=> {
+      this.products = data._embedded.products;
+      this.thePageNumber = data.page.number + 1;
+      this.thePageSize = data.page.size;
+      this.theTotalElements = data.page.totalElements;
+     }
   }
 }
